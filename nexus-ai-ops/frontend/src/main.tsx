@@ -1,0 +1,21 @@
+import React,{useEffect,useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {Activity,Bot,Box,Database,Gauge,Server,ShieldCheck,Terminal,Zap,Wifi,BrainCircuit} from 'lucide-react';
+import './style.css';
+const API='http://localhost:8000';
+function App(){
+ const[d,setD]=useState<any>(null),[live,setLive]=useState<any>({}),[q,setQ]=useState('Why is the API slow?'),[a,setA]=useState<any>(null),[busy,setBusy]=useState(false),[connected,setConnected]=useState(false),[events,setEvents]=useState<any[]>([]);
+ useEffect(()=>{fetch(API+'/api/overview').then(r=>r.json()).then(setD); const ws=new WebSocket('ws://localhost:8000/ws/telemetry'); ws.onopen=()=>setConnected(true); ws.onclose=()=>setConnected(false); ws.onmessage=e=>{const x=JSON.parse(e.data);setLive(x);setEvents(v=>[...v,{t:new Date().toLocaleTimeString(),cpu:x.cpu,lat:x.latency}].slice(-12));}; return()=>ws.close()},[]);
+ async function analyze(){setBusy(true);const r=await fetch(API+'/api/ai/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});setA(await r.json());setBusy(false)}
+ if(!d)return <div className="boot">NEXUS // BOOTING SYSTEM...</div>;
+ const services=live.services||d.services;
+ return <main><header><div className="brand"><div className="logo"><Zap/></div><div><b>NEXUS</b><small>AI OPERATIONS CENTER · v2.0</small></div></div><div className={connected?'online':'offline'}>{connected?'● LIVE WEBSOCKET':'○ DISCONNECTED'}</div></header>
+ <section className="hero"><div><label>INFRASTRUCTURE COMMAND</label><h1>Observe. Diagnose.<br/><i>Resolve.</i></h1><p>AI-assisted observability platform for incident detection, diagnosis and response.</p></div><div className="uptime"><ShieldCheck/><strong>{d.uptime}</strong><small>PLATFORM UPTIME</small><span><Wifi/> {connected?'REALTIME STREAM':'OFFLINE'}</span></div></section>
+ <section className="cards"><Card icon={<Gauge/>} n="CPU" v={(live.cpu||d.cpu)+'%'} s="LIVE"/><Card icon={<Activity/>} n="MEMORY" v={(live.memory||d.memory)+'%'} s="LIVE"/><Card icon={<Server/>} n="REQUESTS" v={(live.requests||d.requests_per_minute)+'/m'} s="LIVE"/><Card icon={<Zap/>} n="P95 LATENCY" v={(live.latency||82)+'ms'} s="LIVE"/></section>
+ <section className="telemetry panel"><div className="pt"><Activity/><b>REALTIME TELEMETRY</b><small>WEBSOCKET · 2s</small></div><div className="chart">{events.map((x,i)=><div key={i} className="bar" style={{height:Math.max(8,Math.min(95,x.lat/2))+'%'}} title={`${x.t} · ${x.lat}ms`}></div>)}</div><div className="chartlabels"><span>LATENCY STREAM</span><span>{live.error_rate??d.error_rate}% ERROR RATE</span></div></section>
+ <section className="cols"><Panel title="SERVICE MESH" icon={<Box/>}>{services.map((s:any)=><div className="row" key={s.name}><span className="green"/><b>{s.name}</b><small>{s.latency}ms</small><em>HEALTHY</em></div>)}</Panel><Panel title="INCIDENT STREAM" icon={<Activity/>}>{d.incidents.map((x:any)=><div className="incident" key={x.id}><span className={x.severity}>{x.severity}</span><div><b>{x.title}</b><small>{x.id} · {x.service} · {x.time}</small></div><em>{x.status}</em></div>)}</Panel></section>
+ <section className="panel ai"><div className="ait"><div><BrainCircuit/><b>AI INCIDENT ANALYZER</b></div><span>● READY</span></div><div className="ask"><input value={q} onChange={e=>setQ(e.target.value)}/><button onClick={analyze}>{busy?'ANALYZING':'RUN ANALYSIS'}</button></div>{a&&<div className="result"><div className="resulttop"><b>DIAGNOSIS</b><span>{Math.round(a.confidence*100)}% confidence</span></div><h3>{a.root_cause}</h3><p>{a.summary}</p><div className="signals">{a.signals.map((s:string)=><span key={s}>{s}</span>)}</div><h4>RECOMMENDED ACTIONS</h4><ul>{a.actions.map((x:string)=><li key={x}>{x}</li>)}</ul></div>}</section>
+ <footer><Terminal/> LIVE WEBSOCKET · PROMETHEUS · DOCKER · FASTAPI · REACT · POSTGRESQL · REDIS</footer></main>}
+function Card(p:any){return <div className="card">{p.icon}<small>{p.n}</small><b>{p.v}</b><em>{p.s}</em></div>}
+function Panel(p:any){return <div className="panel"><div className="pt">{p.icon}<b>{p.title}</b><small>LIVE</small></div>{p.children}</div>}
+createRoot(document.getElementById('root')!).render(<App/>);

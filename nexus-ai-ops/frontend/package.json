@@ -1,0 +1,1 @@
+{"name":"nexus-dashboard","private":true,"version":"0.1.0","type":"module","scripts":{"dev":"vite","build":"vite build"},"dependencies":{"lucide-react":"^0.468.0","react":"^19.1.1","react-dom":"^19.1.1"},"devDependencies":{"@vitejs/plugin-react":"^5.0.4","vite":"^7.1.7","typescript":"^5.9.2"}}
